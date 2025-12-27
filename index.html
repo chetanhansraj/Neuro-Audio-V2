@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f0f13">
+    <title>NeuroAudio | Tinnitus Relief & Tracker</title>
+
+   <link rel="manifest" href="manifest.json">
+   <link rel="icon" type="image/jpeg" href="Neuro-Audio.jpg">
+
+    <meta name="description" content="Free, open-source Acoustic CR Neuromodulation and Notched Noise therapy.">
+    <style>
+        :root { --primary: #00f2ea; --secondary: #ff0050; --bg: #0f0f13; --surface: #1a1a20; --text: #e0e0e0; --success: #00ff9d; }
+        body { background-color: var(--bg); color: var(--text); font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* Layout */
+        .app-container { max-width: 600px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; flex: 1; display: flex; flex-direction: column; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-weight: 300; letter-spacing: 1px; color: var(--primary); font-size: 1.5rem; }
+
+        /* Cards */
+        .card { background: var(--surface); border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); position: relative; }
+
+        /* Tabs */
+        .tabs { display: flex; margin-bottom: 20px; background: #111; border-radius: 10px; padding: 4px; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-radius: 8px; font-size: 0.8rem; opacity: 0.6; transition: 0.2s; white-space: nowrap;}
+        .tab.active { background: #333; opacity: 1; font-weight: bold; color: var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+
+        /* Mode Info */
+        .mode-info { font-size: 0.85rem; color: #888; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; line-height: 1.5; }
+
+        /* Visualizer */
+        canvas { width: 100%; height: 60px; border-radius: 8px; background: #111; margin-bottom: 15px; display: block; }
+
+        /* Frequency Control */
+        .freq-display { text-align: center; font-size: 3.5rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+        .freq-label { text-align: center; color: var(--primary); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+        input[type=range] { width: 100%; margin: 25px 0; accent-color: var(--primary); cursor: pointer; height: 6px; background: #333; border-radius: 3px; appearance: none; }
+        input[type=range]::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); }
+
+        /* Buttons */
+        .btn-group { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+        .btn { background: #2a2a35; border: 1px solid #3a3a45; color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; user-select: none; }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: var(--primary); color: #000; font-weight: bold; border: none; width: 100%; padding: 18px; font-size: 1.2rem; border-radius: 12px; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 0 15px rgba(0, 242, 234, 0.2); }
+        .btn-stop { background: var(--secondary); box-shadow: 0 0 15px rgba(255, 0, 80, 0.3); color: white; }
+        .btn-help { background: transparent; border: 1px solid var(--primary); color: var(--primary); font-weight: bold; width: 40px; height: 40px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
+        /* Timer & Stats */
+        .timer-display { font-family: monospace; font-size: 2rem; color: var(--success); text-align: center; margin: 10px 0; font-variant-numeric: tabular-nums; }
+
+        /* Saved Message Animation */
+        @keyframes blink { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        .saved-msg { text-align: center; color: var(--success); font-size: 0.9rem; opacity: 0; transition: opacity 0.5s; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+        .saved-msg.show { opacity: 1; animation: blink 2s infinite; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; pointer-events: none; transition: 0.3s; }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal { background: #222; padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; border: 1px solid #333; position: relative; }
+        .modal h2 { margin-top: 0; color: var(--primary); border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 20px;}
+        .modal h3 { color: #fff; margin-top: 25px; margin-bottom: 10px; font-size: 1.1rem; }
+        .modal p, .modal li { line-height: 1.6; color: #ccc; font-size: 0.95rem; margin-bottom: 10px; }
+        .modal ul { padding-left: 20px; }
+        .close-modal { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #555; font-size: 1.8rem; cursor: pointer; }
+
+        /* History List */
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 0.9rem; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="faqModal" class="modal-overlay">
+    <div class="modal">
+        <button class="close-modal" onclick="closeModal('faqModal')">&times;</button>
+        <h2>Help & FAQ</h2>
+
+        <h3>Which Mode should I use?</h3>
+        <ul>
+            <li><strong>Tonal CR (Beeps):</strong> Best for "Ringing" tinnitus. Active desynchronization.</li>
+            <li><strong>Pulsed Noise (Shhh):</strong> Best for "Hissing/Static" tinnitus. Matches high-pitched hiss and pulses it to confuse the brain.</li>
+            <li><strong>Notched Noise:</strong> Best for resting the ear. Plays broad static with your frequency removed.</li>
+        </ul>
+
+        <h3>Instructions</h3>
+        <ol>
+            <li><strong>Match Pitch:</strong> Use the slider to find the pitch that matches your ringing.</li>
+            <li><strong>Low Volume:</strong> Set volume so it is <em>barely audible</em>.</li>
+            <li><strong>Consistency:</strong> Try 15-30 minutes, twice a day.</li>
+        </ol>
+
+        <h3>⚠️ Disclaimer</h3>
+        <p>This tool is not a replacement for professional medical advice. Always keep the volume low (barely audible). If your symptoms worsen, discontinue use immediately.</strong></p>
+        <button class="btn btn-primary" onclick="closeModal('faqModal')">Got it</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <header>
+        <h1>NeuroAudio</h1>
+        <button class="btn btn-help" onclick="openModal('faqModal')">?</button>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchMode('cr')" id="tab-cr">Tonal CR</div>
+        <div class="tab" onclick="switchMode('pulse')" id="tab-pulse">Pulsed Noise</div>
+        <div class="tab" onclick="switchMode('noise')" id="tab-noise">Notched Noise</div>
+    </div>
+
+    <div class="card">
+        <div class="freq-label">Tinnitus Frequency</div>
+        <div class="freq-display"><span id="freqDisplay">4000</span> Hz</div>
+
+        <canvas id="visualizer"></canvas>
+
+        <input type="range" id="freqSlider" min="200" max="12000" value="4000" step="1">
+
+        <div class="btn-group">
+            <button class="btn" onclick="adjustFreq(-50)">-50</button>
+            <button class="btn" onclick="adjustFreq(-1)">-1</button>
+            <button class="btn" id="matchBtn">🔊 Check Pitch</button>
+            <button class="btn" onclick="adjustFreq(1)">+1</button>
+            <button class="btn" onclick="adjustFreq(50)">+50</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div id="desc-cr" class="mode-info">
+            <strong>Mode: Acoustic CR (Tonal).</strong> Plays random tones around your frequency. Best for pure tone ringing.
+        </div>
+        <div id="desc-pulse" class="mode-info hidden">
+            <strong>Mode: Pulsed Noise (Narrowband).</strong> Plays a "Shhh" sound tuned to your pitch in a random rhythm. Best for high-pitched static/hiss.
+        </div>
+        <div id="desc-noise" class="mode-info hidden">
+            <strong>Mode: Notched Noise.</strong> Plays broad white noise with your pitch SILENCED (Dead Zone).
+        </div>
+
+        <div id="timer" class="timer-display">00:00</div>
+
+        <button class="btn btn-primary" id="startBtn">Start Therapy</button>
+        <button class="btn btn-primary btn-stop hidden" id="stopBtn">Stop & Save</button>
+
+        <div id="savedMsg" class="saved-msg">Session Saved to History</div>
+    </div>
+
+    <div class="card">
+        <div class="freq-label" style="text-align: left; border-bottom: 1px solid #333; padding-bottom: 10px;">Session Log</div>
+        <div id="historyList" class="history-list">
+            <div style="text-align: center; padding: 20px; color: #555;">No sessions yet.</div>
+        </div>
+        <button class="btn" onclick="clearHistory()" style="width: 100%; margin-top: 10px; opacity: 0.5; font-size: 0.8rem;">Clear History</button>
+    </div>
+</div>
+
+<script>
+    // --- GLOBAL MODAL FUNCTIONS ---
+    window.openModal = function(id) { document.getElementById(id).classList.add('open'); }
+    window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); }
+
+    // --- STATE ---
+    let audioCtx;
+    let mainGain;
+    let analyser;
+    
+    // Matched Sound State
+    let activeMatchNode = null; // Can hold { node: osc/bufferSrc, type: 'osc'/'noise', filter: filterNode }
+
+    let therapyTimeout = null;
+    let isRunning = false;
+    let currentMode = 'cr'; // 'cr', 'pulse', 'noise'
+    let activeNodes = []; // For Kill Switch
+    let startTime = 0;
+    let timerInterval = null;
+    let animationFrame = null;
+    let currentFreq = parseInt(localStorage.getItem('na_freq')) || 4000;
+    let whiteNoiseBuffer = null; // Reusable buffer for Pulse/Noise modes
+
+    // --- UI REFS ---
+    const ui = {
+        display: document.getElementById('freqDisplay'),
+        slider: document.getElementById('freqSlider'),
+        startBtn: document.getElementById('startBtn'),
+        stopBtn: document.getElementById('stopBtn'),
+        matchBtn: document.getElementById('matchBtn'),
+        timer: document.getElementById('timer'),
+        history: document.getElementById('historyList'),
+        canvas: document.getElementById('visualizer'),
+        savedMsg: document.getElementById('savedMsg'),
+        tabCR: document.getElementById('tab-cr'),
+        tabPulse: document.getElementById('tab-pulse'),
+        tabNoise: document.getElementById('tab-noise'),
+        descCR: document.getElementById('desc-cr'),
+        descPulse: document.getElementById('desc-pulse'),
+        descNoise: document.getElementById('desc-noise')
+    };
+
+    // --- INITIALIZATION ---
+    ui.slider.value = currentFreq;
+    ui.display.innerText = currentFreq;
+    renderHistory();
+
+    if(!localStorage.getItem('na_visited_v5')) {
+        openModal('faqModal');
+        localStorage.setItem('na_visited_v5', 'true');
+    }
+
+    // --- MODE SWITCHING ---
+    window.switchMode = function(mode) {
+        if(isRunning) stopTherapy(); // Safety stop
+        if(activeMatchNode) ui.matchBtn.click(); // Stop matching if checking pitch
+        
+        currentMode = mode;
+
+        // Update Tabs
+        ui.tabCR.classList.toggle('active', mode === 'cr');
+        ui.tabPulse.classList.toggle('active', mode === 'pulse');
+        ui.tabNoise.classList.toggle('active', mode === 'noise');
+
+        // Update Description
+        ui.descCR.classList.toggle('hidden', mode !== 'cr');
+        ui.descPulse.classList.toggle('hidden', mode !== 'pulse');
+        ui.descNoise.classList.toggle('hidden', mode !== 'noise');
+    };
+
+    // --- AUDIO CORE ---
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            mainGain = audioCtx.createGain();
+            mainGain.connect(audioCtx.destination);
+
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            mainGain.connect(analyser);
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    // --- FREQUENCY LOGIC ---
+    ui.slider.oninput = function() { setFreq(this.value); };
+    function adjustFreq(amt) { setFreq(currentFreq + amt); }
+
+    function setFreq(val) {
+        currentFreq = Math.min(12000, Math.max(200, parseInt(val)));
+        ui.slider.value = currentFreq;
+        ui.display.innerText = currentFreq;
+        localStorage.setItem('na_freq', currentFreq);
+        
+        // Live update the matching sound
+        if(activeMatchNode) {
+            if(activeMatchNode.type === 'osc') {
+                activeMatchNode.node.frequency.setValueAtTime(currentFreq, audioCtx.currentTime);
+            } else if(activeMatchNode.type === 'noise') {
+                activeMatchNode.filter.frequency.setValueAtTime(currentFreq, audioCtx.currentTime);
+            }
+        }
+    }
+
+    // --- SHARED NOISE GENERATOR ---
+    function createWhiteNoiseBuffer() {
+        if(whiteNoiseBuffer) return; // Only create once
+        const bufferSize = audioCtx.sampleRate * 2; // 2 seconds of noise
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        whiteNoiseBuffer = buffer;
+    }
+
+    // --- VISUALIZER ---
+    function startVisualizer() {
+        if(animationFrame) cancelAnimationFrame(animationFrame);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const ctx = ui.canvas.getContext('2d');
+
+        function draw() {
+            if(!isRunning && !activeMatchNode) return; 
+
+            animationFrame = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, ui.canvas.width, ui.canvas.height);
+
+            const barWidth = (ui.canvas.width / bufferLength) * 2.5;
+            let x = 0;
+
+            for(let i = 0; i < bufferLength; i++) {
+                let barHeight = dataArray[i] / 2;
+                ctx.fillStyle = `rgb(${barHeight + 50}, ${242 - barHeight}, 234)`;
+                ctx.fillRect(x, ui.canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+        draw();
+    }
+
+    // --- SMART PITCH MATCHING (TONE OR NOISE) ---
+    ui.matchBtn.onclick = function() {
+        initAudio();
+
+        // 1. IF STOPPING
+        if(activeMatchNode) {
+            try { activeMatchNode.node.stop(); } catch(e){}
+            activeMatchNode = null;
+            this.innerText = "🔊 Check Pitch";
+            this.style.background = "#2a2a35";
+            return;
+        }
+
+        // 2. IF STARTING
+        this.innerText = "Stop Sound";
+        this.style.background = "var(--secondary)";
+        startVisualizer();
+
+        const g = audioCtx.createGain();
+        g.gain.value = 0.1; // Moderate volume for checking
+        g.connect(mainGain);
+
+        if (currentMode === 'pulse') {
+            // Play CONTINUOUS BANDPASS NOISE (The "Shhh")
+            createWhiteNoiseBuffer();
+            const src = audioCtx.createBufferSource();
+            src.buffer = whiteNoiseBuffer;
+            src.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = currentFreq;
+            filter.Q.value = 8; // Same sharp "Shhh" as therapy
+
+            src.connect(filter).connect(g);
+            src.start();
+            
+            activeMatchNode = { node: src, type: 'noise', filter: filter };
+
+        } else {
+            // Play SINE WAVE (The "Beep") for CR and Notched
+            const osc = audioCtx.createOscillator();
+            osc.frequency.value = currentFreq;
+            osc.connect(g);
+            osc.start();
+
+            activeMatchNode = { node: osc, type: 'osc' };
+        }
+    };
+
+    // --- THERAPY CONTROLLER ---
+    ui.startBtn.onclick = function() {
+        initAudio();
+        if(activeMatchNode) ui.matchBtn.click(); // Stop match tone
+
+        isRunning = true;
+        activeNodes = [];
+        startTime = Date.now();
+        ui.startBtn.classList.add('hidden');
+        ui.stopBtn.classList.remove('hidden');
+        ui.savedMsg.classList.remove('show');
+
+        startVisualizer();
+
+        // Timer
+        ui.timer.innerText = "00:00";
+        timerInterval = setInterval(() => {
+            const secs = Math.floor((Date.now() - startTime) / 1000);
+            const m = Math.floor(secs / 60).toString().padStart(2, '0');
+            const s = (secs % 60).toString().padStart(2, '0');
+            ui.timer.innerText = `${m}:${s}`;
+        }, 1000);
+
+        if(currentMode === 'cr') startCRTherapy();
+        else if(currentMode === 'pulse') startPulseTherapy();
+        else startNoiseTherapy();
+    };
+
+    // 1. CR ENGINE (TONAL)
+    function startCRTherapy() {
+        const factors = [0.77, 0.90, 1.10, 1.40];
+        const toneDur = 0.25; 
+        let nextTime = audioCtx.currentTime + 0.1;
+
+        function schedule() {
+            if(!isRunning) return;
+            while(nextTime < audioCtx.currentTime + 2.0) {
+                for(let c=0; c<3; c++) {
+                    let freqs = factors.map(f => currentFreq * f);
+                    freqs.sort(() => Math.random() - 0.5);
+                    freqs.forEach(f => {
+                        playTonePulse(f, nextTime, toneDur);
+                        nextTime += toneDur;
+                    });
+                }
+                nextTime += (toneDur * 2); 
+            }
+            therapyTimeout = setTimeout(schedule, 1000);
+        }
+        schedule();
+    }
+
+    function playTonePulse(freq, time, dur) {
+        if (!isRunning) return;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.frequency.value = freq;
+        g.gain.setValueAtTime(0, time);
+        g.gain.linearRampToValueAtTime(0.08, time + 0.03);
+        g.gain.linearRampToValueAtTime(0.08, time + dur - 0.03);
+        g.gain.linearRampToValueAtTime(0, time + dur);
+
+        osc.connect(g).connect(mainGain);
+        osc.start(time);
+        osc.stop(time + dur);
+
+        activeNodes.push({ node: osc, type: 'osc' });
+        osc.onended = () => { activeNodes = activeNodes.filter(n => n.node !== osc); };
+    }
+
+    // 2. PULSED NOISE ENGINE (THE DIGITAL SHUSHER)
+    function startPulseTherapy() {
+        createWhiteNoiseBuffer();
+        const toneDur = 0.35; 
+        let nextTime = audioCtx.currentTime + 0.1;
+
+        function schedule() {
+            if(!isRunning) return;
+            while(nextTime < audioCtx.currentTime + 2.0) {
+                // Play random bursts of the Filtered Noise
+                for(let c=0; c<3; c++) { 
+                    playNoiseBurst(currentFreq, nextTime, toneDur);
+                    nextTime += toneDur + (Math.random() * 0.1); 
+                }
+                nextTime += (toneDur * 2); 
+            }
+            therapyTimeout = setTimeout(schedule, 1000);
+        }
+        schedule();
+    }
+
+    function playNoiseBurst(freq, time, dur) {
+        if(!isRunning) return;
+        const src = audioCtx.createBufferSource();
+        src.buffer = whiteNoiseBuffer;
+        
+        // The Mouth Shape (Bandpass)
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = freq;
+        filter.Q.value = 8; 
+
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(0, time);
+        g.gain.linearRampToValueAtTime(0.15, time + 0.05);
+        g.gain.linearRampToValueAtTime(0.15, time + dur - 0.05);
+        g.gain.linearRampToValueAtTime(0, time + dur);
+
+        src.connect(filter).connect(g).connect(mainGain);
+        src.start(time);
+        src.stop(time + dur);
+
+        activeNodes.push({ node: src, type: 'noise' });
+        src.onended = () => { activeNodes = activeNodes.filter(n => n.node !== src); };
+    }
+
+    // 3. NOTCHED NOISE ENGINE
+    function startNoiseTherapy() {
+        createWhiteNoiseBuffer();
+        const noiseSrc = audioCtx.createBufferSource();
+        noiseSrc.buffer = whiteNoiseBuffer;
+        noiseSrc.loop = true;
+
+        // Notch Filter
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'notch';
+        filter.frequency.value = currentFreq;
+        filter.Q.value = 12; 
+
+        const g = audioCtx.createGain();
+        g.gain.value = 0; 
+
+        noiseSrc.connect(filter).connect(g).connect(mainGain);
+        noiseSrc.start();
+
+        g.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 2);
+
+        activeNodes.push({ node: noiseSrc, g, type: 'persistent_noise' });
+    }
+
+    // STOP FUNCTION (KILL SWITCH)
+    function stopTherapy() {
+        isRunning = false;
+        clearTimeout(therapyTimeout);
+        clearInterval(timerInterval);
+
+        mainGain.gain.cancelScheduledValues(audioCtx.currentTime);
+        mainGain.gain.setValueAtTime(mainGain.gain.value, audioCtx.currentTime);
+        mainGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1); 
+
+        activeNodes.forEach(item => {
+            try {
+                if(item.type === 'osc') item.node.stop(audioCtx.currentTime + 0.1);
+                if(item.type === 'noise') item.node.stop(audioCtx.currentTime + 0.1);
+                if(item.type === 'persistent_noise') item.node.stop(audioCtx.currentTime + 0.1);
+            } catch(e) {}
+        });
+        activeNodes = [];
+
+        setTimeout(() => { mainGain.gain.value = 1; }, 200);
+
+        const duration = Math.floor((Date.now() - startTime) / 1000);
+        if(duration >= 3) {
+            saveSession(duration);
+            ui.savedMsg.classList.add('show');
+            setTimeout(() => { ui.savedMsg.classList.remove('show'); }, 7000); 
+        } else {
+             ui.timer.innerText = "00:00"; 
+        }
+
+        ui.startBtn.classList.remove('hidden');
+        ui.stopBtn.classList.add('hidden');
+    }
+
+    ui.stopBtn.onclick = stopTherapy;
+
+    // --- HISTORY SYSTEM ---
+    function saveSession(seconds) {
+        let history = [];
+        try { history = JSON.parse(localStorage.getItem('na_history')) || []; } catch(e) { history = []; }
+
+        const session = {
+            date: new Date().toLocaleDateString(),
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            mode: currentMode === 'cr' ? 'Tonal CR' : (currentMode === 'pulse' ? 'Pulsed Noise' : 'Notched'),
+            freq: currentFreq,
+            dur: seconds
+        };
+
+        history.unshift(session);
+        if(history.length > 50) history.pop(); 
+        localStorage.setItem('na_history', JSON.stringify(history));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        let history = [];
+        try { history = JSON.parse(localStorage.getItem('na_history')) || []; } catch(e) { history = []; }
+
+        if(history.length === 0) {
+            ui.history.innerHTML = '<div style="text-align: center; padding: 20px; color: #555;">No sessions yet.</div>';
+            return;
+        }
+
+        ui.history.innerHTML = history.map(h => `
+            <div class="history-item">
+                <div style="color: var(--primary)">${h.mode} <span style="font-size:0.8em; color:#888">(${h.freq}Hz)</span></div>
+                <div style="color: #ccc">${Math.floor(h.dur/60)}m ${h.dur%60}s</div>
+                <div style="font-size: 0.8em; color: #666; width: 60px; text-align:right">${h.date}<br>${h.time}</div>
+            </div>
+        `).join('');
+    }
+
+    function clearHistory() {
+        if(confirm("Clear all session history?")) {
+            localStorage.removeItem('na_history');
+            renderHistory();
+        }
+    }
+</script>
+</body>
+</html>
