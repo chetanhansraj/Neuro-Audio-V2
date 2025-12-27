@@ -456,8 +456,8 @@
 
         const g = audioCtx.createGain();
         g.gain.setValueAtTime(0, time);
-        g.gain.linearRampToValueAtTime(0.15, time + 0.05);
-        g.gain.linearRampToValueAtTime(0.15, time + dur - 0.05);
+        g.gain.linearRampToValueAtTime(0.15, time + 0.01);
+        g.gain.linearRampToValueAtTime(0.15, time + dur - 0.01);
         g.gain.linearRampToValueAtTime(0, time + dur);
 
         src.connect(filter).connect(g).connect(mainGain);
