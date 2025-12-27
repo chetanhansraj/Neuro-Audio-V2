@@ -14,10 +14,25 @@
         :root { --primary: #00f2ea; --secondary: #ff0050; --bg: #0f0f13; --surface: #1a1a20; --card-bg: #222229; --text: #e0e0e0; --success: #00ff9d; }
         body { background-color: var(--bg); color: var(--text); font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
-        /* Layout */
-        .app-container { max-width: 600px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; flex: 1; display: flex; flex-direction: column; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h1 { margin: 0; font-weight: 300; letter-spacing: 1px; color: var(--primary); font-size: 1.5rem; }
+/* Layout Fixes */
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden;
+        }
+
+        .app-container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            min-height: 100vh;
+            display: block; /* Changed from flex to block for natural scrolling */
+        } }
 
         /* Track Cards (The Blocks) */
         .track-list { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
